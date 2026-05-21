@@ -7,12 +7,12 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=nextdotjs)](https://nextjs.org)
 [![Deployed on Vercel](https://img.shields.io/badge/Frontend-Vercel-black?style=flat-square&logo=vercel)](https://ecc-elgamal.vercel.app)
-[![Deployed on Railway](https://img.shields.io/badge/Backend-Railway-0B0D0E?style=flat-square&logo=railway)](https://ecc-elgamal-api.railway.app)
+[![Deployed on Render](https://img.shields.io/badge/Backend-Render-0B0D0E?style=flat-square&logo=render)](https://ecc-elgamal-api.onrender.com)
 
 > Generate keys. Encrypt messages. Simulate secure data transmission. Benchmark both algorithms live — no installation required.
 
 **🌐 Live App:** [https://ecc-elgamal.vercel.app](https://ecc-elgamal.vercel.app)  
-**📡 API:** [https://ecc-elgamal-api.railway.app/docs](https://ecc-elgamal-api.railway.app/docs)
+**📡 API:** [https://ecc-elgamal-api.onrender.com/docs](https://ecc-elgamal-api.onrender.com/docs)
 
 ---
 
@@ -75,7 +75,7 @@ This project is the implementation artefact for a final year B.Sc. Computer Scie
 | Timing | `time.perf_counter()` (nanosecond resolution) |
 | Memory | `tracemalloc` (peak heap profiling) |
 | Frontend Hosting | Vercel |
-| Backend Hosting | Railway |
+| Backend Hosting | Render |
 
 ---
 
@@ -147,18 +147,18 @@ Both backend and frontend must be running simultaneously.
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | URL of the FastAPI backend | `http://localhost:8000` |
 
-For production (Vercel), set `NEXT_PUBLIC_API_URL` to your Railway backend URL:  
-`https://ecc-elgamal-api.railway.app`
+For production (Vercel), set `NEXT_PUBLIC_API_URL` to your Render backend URL:  
+`https://ecc-elgamal-api.onrender.com`
 
 ---
 
 ## Deployment
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for the complete step-by-step guide from local development to production deployment on Railway and Vercel.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the complete step-by-step guide from local development to production deployment on Render and Vercel.
 
 **Quick summary:**
 1. Push code to GitHub (`vehutech/ecc-elgamal`)
-2. Connect Railway to the `backend/` folder → auto-deploys on push
+2. Connect Render to the `backend/` folder → auto-deploys on push
 3. Connect Vercel to the `frontend/` folder → auto-deploys on push
 4. Set `NEXT_PUBLIC_API_URL` in Vercel environment variables
 
@@ -181,7 +181,7 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for the complete step-by-step guide from lo
 | `POST` | `/benchmark/ecc` | ECC-only benchmark |
 | `POST` | `/benchmark/elgamal` | ElGamal-only benchmark |
 
-Full interactive docs: [https://ecc-elgamal-api.railway.app/docs](https://ecc-elgamal-api.railway.app/docs)
+Full interactive docs: [https://ecc-elgamal-api.onrender.com/docs](https://ecc-elgamal-api.onrender.com/docs)
 
 ---
 
@@ -197,8 +197,8 @@ ecc-elgamal/
 │   ├── transmission_module.py # Port-to-port transmission simulation
 │   ├── main.py                # FastAPI app and routes
 │   ├── requirements.txt
-│   ├── Procfile               # Railway start command
-│   └── railway.toml
+│   ├── Procfile               # Render start command
+│   └── 
 │
 ├── frontend/
 │   ├── src/

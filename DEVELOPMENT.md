@@ -1,7 +1,7 @@
 # CipherDuel — Development & Deployment Guide
 
 This document covers everything from setting up your local development environment
-to deploying a production build on Railway (backend) and Vercel (frontend).
+to deploying a production build on Render (backend) and Vercel (frontend).
 This is the private, detailed technical guide. The README covers the quick public steps.
 
 ---
@@ -13,7 +13,7 @@ This is the private, detailed technical guide. The README covers the quick publi
 3. [Testing the Backend](#3-testing-the-backend)
 4. [Testing the Frontend](#4-testing-the-frontend)
 5. [Environment Variable Management](#5-environment-variable-management)
-6. [Deploying the Backend to Railway](#6-deploying-the-backend-to-railway)
+6. [Deploying the Backend to Render](#6-deploying-the-backend-to-render)
 7. [Deploying the Frontend to Vercel](#7-deploying-the-frontend-to-vercel)
 8. [Updating a Deployment After Code Changes](#8-updating-a-deployment-after-code-changes)
 9. [Monitoring and Logs](#9-monitoring-and-logs)
@@ -272,36 +272,36 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ### Production (set in Vercel dashboard)
 
 ```
-NEXT_PUBLIC_API_URL=https://ecc-elgamal-api.railway.app
+NEXT_PUBLIC_API_URL=https://ecc-elgamal-api.onrender.com
 ```
 
 ### Backend (no secrets needed)
 
-The backend has no secret environment variables. Railway automatically provides `$PORT`.
-If you add secrets in future (e.g., a database URL), add them in the Railway dashboard
+The backend has no secret environment variables. Render automatically provides `$PORT`.
+If you add secrets in future (e.g., a database URL), add them in the Render dashboard
 under Settings → Variables, never in code.
 
 ---
 
-## 6. Deploying the Backend to Railway
+## 6. Deploying the Backend to Render
 
-### Step 6.1 — Create a Railway account
+### Step 6.1 — Create a Render account
 
-1. Go to https://railway.app
+1. Go to https://onrender.com
 2. Sign up with your GitHub account
 
 ### Step 6.2 — Create a new project
 
 1. Click **New Project**
 2. Select **Deploy from GitHub repo**
-3. Authorise Railway to access your GitHub account
+3. Authorise Render to access your GitHub account
 4. Select `vehutech/ecc-elgamal`
 
 ### Step 6.3 — Configure the service
 
-1. Railway will detect the repository. Click **Add Service** → **GitHub Repo**
+1. Render will detect the repository. Click **Add Service** → **GitHub Repo**
 2. In the service settings, set the **Root Directory** to `backend`
-3. Railway will automatically detect the `Procfile` and use:
+3. Render will automatically detect the `Procfile` and use:
    ```
    uvicorn main:app --host 0.0.0.0 --port $PORT
    ```
@@ -309,22 +309,22 @@ under Settings → Variables, never in code.
 ### Step 6.4 — Deploy
 
 1. Click **Deploy**
-2. Watch the build logs — Railway installs from `requirements.txt` automatically
+2. Watch the build logs — Render installs from `requirements.txt` automatically
 3. Once deployed, click **Settings** → **Networking** → **Generate Domain**
-4. Your API will be live at something like: `https://ecc-elgamal-api.railway.app`
+4. Your API will be live at something like: `https://ecc-elgamal-api.onrender.com`
 
 ### Step 6.5 — Verify
 
 ```bash
-curl https://ecc-elgamal-api.railway.app/health
+curl https://ecc-elgamal-api.onrender.com/health
 # Expected: {"status": "ok"}
 ```
 
-Visit `https://ecc-elgamal-api.railway.app/docs` for the live Swagger UI.
+Visit `https://ecc-elgamal-api.onrender.com/docs` for the live Swagger UI.
 
 ### Important notes
 
-- Railway free tier provides 500 hours/month — sufficient for a project demo
+- Render free tier provides 500 hours/month — sufficient for a project demo
 - The service sleeps after inactivity on the free tier. First request after sleep
   takes ~5–10 seconds (cold start). This is normal.
 - If you hit the free tier limit, upgrade to the Hobby plan ($5/month)
@@ -359,7 +359,7 @@ Under **Environment Variables**, add:
 
 | Name | Value |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | `https://ecc-elgamal-api.railway.app` |
+| `NEXT_PUBLIC_API_URL` | `https://ecc-elgamal-api.onrender.com` |
 
 ### Step 7.5 — Deploy
 
@@ -378,7 +378,7 @@ Under **Environment Variables**, add:
 
 ## 8. Updating a Deployment After Code Changes
 
-Both Railway and Vercel are connected to your GitHub repo and redeploy automatically
+Both Render and Vercel are connected to your GitHub repo and redeploy automatically
 on every push to the `main` branch.
 
 ### Workflow
@@ -396,14 +396,14 @@ git push origin main
 ```
 
 After the push:
-- **Railway** detects the push, rebuilds the backend, and redeploys (≈60–120 seconds)
+- **Render** detects the push, rebuilds the backend, and redeploys (≈60–120 seconds)
 - **Vercel** detects the push, rebuilds the frontend, and redeploys (≈60–90 seconds)
 
 You can monitor both deployments in their respective dashboards in real time.
 
 ### Deploying only the backend
 
-Railway and Vercel redeploy on any push. To avoid unnecessary frontend rebuilds
+Render and Vercel redeploy on any push. To avoid unnecessary frontend rebuilds
 while working only on the backend, you can use Vercel's ignored build step:
 
 In Vercel → Settings → Git → Ignored Build Step, enter:
@@ -416,9 +416,9 @@ This tells Vercel to skip rebuilding if no frontend files changed.
 
 ## 9. Monitoring and Logs
 
-### Railway (backend)
+### Render (backend)
 
-1. Open your Railway project
+1. Open your Render project
 2. Click the service → **Logs** tab
 3. Live logs stream in real time
 4. To see request logs, look for lines like:
@@ -436,7 +436,7 @@ This tells Vercel to skip rebuilding if no frontend files changed.
 
 ```bash
 # From your terminal, check if the production API is up
-curl -s https://ecc-elgamal-api.railway.app/health | python3 -m json.tool
+curl -s https://ecc-elgamal-api.onrender.com/health | python3 -m json.tool
 ```
 
 ---
@@ -467,14 +467,14 @@ uvicorn main:app --reload --port 8001
 **Check 2:** Is `NEXT_PUBLIC_API_URL` set correctly in `frontend/.env.local`?  
 **Check 3:** After changing `.env.local`, restart `npm run dev`
 
-### Railway deployment fails
+### Render deployment fails
 
-**Symptom:** Build fails in Railway logs  
+**Symptom:** Build fails in Render logs  
 **Common cause:** Missing package in `requirements.txt` or Python version mismatch  
-**Fix:** Check the Railway build logs for the exact error line, fix it locally, push again
+**Fix:** Check the Render build logs for the exact error line, fix it locally, push again
 
-**Symptom:** App crashes after deployment (Railway shows "Crashed")  
-**Fix:** Check Railway logs. Most common cause is a missing `$PORT` binding —
+**Symptom:** App crashes after deployment (Render shows "Crashed")  
+**Fix:** Check Render logs. Most common cause is a missing `$PORT` binding —
 ensure `Procfile` uses `--port $PORT` not `--port 8000`
 
 ### Vercel deployment fails
@@ -487,16 +487,16 @@ ensure `Procfile` uses `--port $PORT` not `--port 8000`
 ### Benchmark endpoint times out
 
 **Symptom:** Benchmark requests fail after 30 seconds  
-**Cause:** Railway's free tier has a 30-second request timeout  
+**Cause:** Render's free tier has a 30-second request timeout  
 **Fix:** Reduce `iterations` to 20–30 in the benchmark panel to keep requests fast  
-For larger benchmarks, upgrade to Railway Hobby plan (no timeout limit)
+For larger benchmarks, upgrade to Render Hobby plan (no timeout limit)
 
 ### Cold start delay
 
 **Symptom:** First API request after inactivity takes 5–15 seconds  
-**Cause:** Railway free tier sleeps inactive services  
+**Cause:** Render free tier sleeps inactive services  
 **This is normal** — subsequent requests are fast. If you need zero cold start,
-upgrade to Railway Hobby plan which keeps the service always-on.
+upgrade to Render Hobby plan which keeps the service always-on.
 
 ---
 

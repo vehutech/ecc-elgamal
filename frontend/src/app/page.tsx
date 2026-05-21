@@ -83,7 +83,7 @@ export default function HomePage() {
               View Source
             </a>
             <a
-              href="https://ecc-elgamal-api.onrender.com/docs"
+              href="https://ecc-elgamal.onrender.com/docs"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-ghost text-sm"

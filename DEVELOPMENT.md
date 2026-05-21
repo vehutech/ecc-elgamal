@@ -320,7 +320,7 @@ curl https://ecc-elgamal-api.onrender.com/health
 # Expected: {"status": "ok"}
 ```
 
-Visit `https://ecc-elgamal-api.onrender.com/docs` for the live Swagger UI.
+Visit `https://ecc-elgamal.onrender.com/docs` for the live Swagger UI.
 
 ### Important notes
 

@@ -12,7 +12,7 @@
 > Generate keys. Encrypt messages. Simulate secure data transmission. Benchmark both algorithms live — no installation required.
 
 **🌐 Live App:** [https://ecc-elgamal.vercel.app](https://ecc-elgamal.vercel.app)  
-**📡 API:** [https://ecc-elgamal-api.onrender.com/docs](https://ecc-elgamal-api.onrender.com/docs)
+**📡 API:** [https://ecc-elgamal.onrender.com/docs](https://ecc-elgamal.onrender.com/docs)
 
 ---
 
@@ -181,7 +181,7 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for the complete step-by-step guide from lo
 | `POST` | `/benchmark/ecc` | ECC-only benchmark |
 | `POST` | `/benchmark/elgamal` | ElGamal-only benchmark |
 
-Full interactive docs: [https://ecc-elgamal-api.onrender.com/docs](https://ecc-elgamal-api.onrender.com/docs)
+Full interactive docs: [https://ecc-elgamal.onrender.com/docs](https://ecc-elgamal.onrender.com/docs)
 
 ---
 

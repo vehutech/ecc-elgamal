@@ -72,7 +72,7 @@ export function BenchmarkPanel() {
         borderWidth: 1,
         padding: 10,
         callbacks: {
-          label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)} ms`,
+          label: (ctx) => ` ${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toFixed(3)} ms`,
         },
       },
     },
@@ -96,8 +96,8 @@ export function BenchmarkPanel() {
       tooltip: {
         ...(chartOptions.plugins?.tooltip as object),
         callbacks: {
-          label: (ctx: { dataset: { label?: string }; parsed: { y: number } }) =>
-            ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} KB`,
+          label: (ctx) =>
+            ` ${ctx.dataset.label}: ${(ctx.parsed.y ?? 0).toFixed(2)} KB`,
         },
       },
     },

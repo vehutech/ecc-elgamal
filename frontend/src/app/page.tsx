@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Zap, Key, Lock, Radio, BarChart2, ExternalLink, Github } from 'lucide-react'
 import { Navbar } from '@/components/layout/Navbar'
@@ -8,15 +9,29 @@ import { Footer } from '@/components/layout/Footer'
 import { KeyGenPanel } from '@/components/panels/KeyGenPanel'
 import { EncryptDecryptPanel } from '@/components/panels/EncryptDecryptPanel'
 import { TransmissionPanel } from '@/components/panels/TransmissionPanel'
-import { BenchmarkPanel } from '@/components/panels/BenchmarkPanel'
+
+// Chart.js cannot run server-side — load BenchmarkPanel client-only
+const BenchmarkPanel = dynamic(
+  () => import('@/components/panels/BenchmarkPanel').then(m => m.BenchmarkPanel),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="card p-5 space-y-4">
+        <div className="skeleton h-4 w-40" />
+        <div className="skeleton h-48 w-full" />
+        <div className="skeleton h-48 w-full" />
+      </div>
+    ),
+  }
+)
 
 type Tab = 'keygen' | 'encrypt' | 'transmit' | 'benchmark'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'keygen',    label: 'Key Generation',  icon: <Key size={13} /> },
+  { id: 'keygen',    label: 'Key Generation',    icon: <Key size={13} /> },
   { id: 'encrypt',   label: 'Encrypt / Decrypt', icon: <Lock size={13} /> },
-  { id: 'transmit',  label: 'Transmission',    icon: <Radio size={13} /> },
-  { id: 'benchmark', label: 'Benchmark',        icon: <BarChart2 size={13} /> },
+  { id: 'transmit',  label: 'Transmission',      icon: <Radio size={13} /> },
+  { id: 'benchmark', label: 'Benchmark',          icon: <BarChart2 size={13} /> },
 ]
 
 export default function HomePage() {
@@ -34,6 +49,12 @@ export default function HomePage() {
           transition={{ duration: 0.5 }}
           className="text-center max-w-2xl mx-auto"
         >
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 badge badge-ecc mb-6 text-xs px-3 py-1.5">
+            <Zap size={11} />
+            <span>ECC vs ElGamal &middot; Live Cryptographic Benchmark</span>
+          </div>
+
           {/* Title */}
           <h1
             className="font-display font-800 tracking-tight mb-4"
@@ -48,16 +69,10 @@ export default function HomePage() {
           </h1>
 
           {/* Tagline */}
-          <p
-            className="text-base mb-3 leading-relaxed"
-            style={{ color: 'var(--fg-muted)' }}
-          >
+          <p className="text-base mb-3 leading-relaxed" style={{ color: 'var(--fg-muted)' }}>
             ECC vs ElGamal. One transmission. One winner.
           </p>
-          <p
-            className="text-sm mb-8"
-            style={{ color: 'var(--fg-subtle)' }}
-          >
+          <p className="text-sm mb-8" style={{ color: 'var(--fg-subtle)' }}>
             Generate keys, encrypt messages, simulate secure data transmission between
             ports, and benchmark both algorithms live — no installation required.
           </p>
@@ -74,7 +89,7 @@ export default function HomePage() {
               View Source
             </a>
             <a
-              href="https://ecc-elgamal-api.railway.app/docs"
+              href="https://ecc-elgamal-api.onrender.com/docs"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-ghost text-sm"

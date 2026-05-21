@@ -49,12 +49,6 @@ export default function HomePage() {
           transition={{ duration: 0.5 }}
           className="text-center max-w-2xl mx-auto"
         >
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 badge badge-ecc mb-6 text-xs px-3 py-1.5">
-            <Zap size={11} />
-            <span>ECC vs ElGamal &middot; Live Cryptographic Benchmark</span>
-          </div>
-
           {/* Title */}
           <h1
             className="font-display font-800 tracking-tight mb-4"

@@ -1,8 +1,5 @@
 'use client'
-
-import Link from "next/link"
-
-// trigger a rebuild to update the year in the footer
+import Link from "next/link";
 
 export function Footer() {
   return (

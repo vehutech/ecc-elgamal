@@ -272,7 +272,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ### Production (set in Vercel dashboard)
 
 ```
-NEXT_PUBLIC_API_URL=https://ecc-elgamal-api.onrender.com
+NEXT_PUBLIC_API_URL=https://ecc-elgamal.onrender.com
 ```
 
 ### Backend (no secrets needed)

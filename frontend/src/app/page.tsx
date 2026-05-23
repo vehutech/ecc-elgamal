@@ -58,8 +58,8 @@ export default function HomePage() {
               color: 'var(--fg)',
             }}
           >
-            Cipher
-            <span style={{ color: 'var(--accent)' }}>Duel</span>
+            ECC vs
+            <span style={{ color: 'var(--accent)' }}> ElGamal</span>
           </h1>
 
           {/* Tagline */}

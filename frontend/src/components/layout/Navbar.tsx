@@ -18,12 +18,6 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-2">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: 'var(--accent)' }}
-          >
-            <Zap size={14} className="text-white" />
-          </div>
           <span
             className="font-display font-700 text-base tracking-tight"
             style={{ color: 'var(--fg)' }}

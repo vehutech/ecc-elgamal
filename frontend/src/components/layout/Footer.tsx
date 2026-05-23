@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 
+// trigger a rebuild to update the year in the footer
+
 export function Footer() {
   return (
     <footer

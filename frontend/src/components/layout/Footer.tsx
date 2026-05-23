@@ -16,7 +16,7 @@ export function Footer() {
             <p style={{ color: 'var(--fg-muted)' }} className="font-medium">
               Daniel Vehu Alonge &middot; SCI21CSC229
             </p>
-            <p>Supervisor: Mr. Maleek &middot; Federal University Lokoja</p>
+            <p>Supervisor: Dr. Malik Adeiza Rufai&middot; Federal University Lokoja</p>
             <p>Department of Computer Science &middot; B.Sc. Final Year Project, 2025</p>
           </div>
 
@@ -30,7 +30,7 @@ export function Footer() {
                 style={{ color: 'var(--accent)' }}
                 className="hover:underline font-medium"
               >
-                vehutech.com
+                D. Vehu Alonge
               </a>
             </p>
             <p>

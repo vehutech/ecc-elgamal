@@ -248,7 +248,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 **Daniel Vehu Alonge** — SCI21CSC229  
 B.Sc. Computer Science, Federal University Lokoja  
-Supervisor: Mr. Maleek
+Supervisor: Dr. Malik Adeiza Rufai
 
-Built by [vehutech.com](https://vehutech.com)  
+Built by [D. Vehu Alonge](https://vehutech.com)  
 GitHub: [@vehutech](https://github.com/vehutech)

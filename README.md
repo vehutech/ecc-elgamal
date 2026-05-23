@@ -1,4 +1,4 @@
-# ⚡ CipherDuel
+# CipherDuel
 
 **ECC vs ElGamal — Live Performance and Security Benchmarking in Data Transmission**
 
@@ -11,8 +11,8 @@
 
 > Generate keys. Encrypt messages. Simulate secure data transmission. Benchmark both algorithms live — no installation required.
 
-**🌐 Live App:** [https://ecc-elgamal.vercel.app](https://ecc-elgamal.vercel.app)  
-**📡 API:** [https://ecc-elgamal.onrender.com/docs](https://ecc-elgamal.onrender.com/docs)
+** Live App:** [https://ecc-elgamal.vercel.app](https://ecc-elgamal.vercel.app)  
+** API:** [https://ecc-elgamal.onrender.com/docs](https://ecc-elgamal.onrender.com/docs)
 
 ---
 

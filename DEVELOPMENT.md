@@ -311,12 +311,12 @@ under Settings → Variables, never in code.
 1. Click **Deploy**
 2. Watch the build logs — Render installs from `requirements.txt` automatically
 3. Once deployed, click **Settings** → **Networking** → **Generate Domain**
-4. Your API will be live at something like: `https://ecc-elgamal-api.onrender.com`
+4. Your API will be live at something like: `https://ecc-elgamal.onrender.com`
 
 ### Step 6.5 — Verify
 
 ```bash
-curl https://ecc-elgamal-api.onrender.com/health
+curl https://ecc-elgamal.onrender.com/health
 # Expected: {"status": "ok"}
 ```
 
@@ -359,7 +359,7 @@ Under **Environment Variables**, add:
 
 | Name | Value |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | `https://ecc-elgamal-api.onrender.com` |
+| `NEXT_PUBLIC_API_URL` | `https://ecc-elgamal.onrender.com` |
 
 ### Step 7.5 — Deploy
 
@@ -436,7 +436,7 @@ This tells Vercel to skip rebuilding if no frontend files changed.
 
 ```bash
 # From your terminal, check if the production API is up
-curl -s https://ecc-elgamal-api.onrender.com/health | python3 -m json.tool
+curl -s https://ecc-elgamal.onrender.com/health | python3 -m json.tool
 ```
 
 ---

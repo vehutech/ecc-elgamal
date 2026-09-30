@@ -5,7 +5,7 @@ CipherDuel — FastAPI Application
 REST API exposing ECC and ElGamal cryptographic operations,
 benchmarking, and transmission simulation.
 
-Deployed at: https://ecc-elgamal-api.railway.app
+Deployed at: https://ecc-elgamal.onrender.com
 """
 
 import asyncio

@@ -7,7 +7,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=nextdotjs)](https://nextjs.org)
 [![Deployed on Vercel](https://img.shields.io/badge/Frontend-Vercel-black?style=flat-square&logo=vercel)](https://ecc-elgamal.vercel.app)
-[![Deployed on Render](https://img.shields.io/badge/Backend-Render-0B0D0E?style=flat-square&logo=render)](https://ecc-elgamal-api.onrender.com)
+[![Deployed on Render](https://img.shields.io/badge/Backend-Render-0B0D0E?style=flat-square&logo=render)](https://ecc-elgamal.onrender.com)
 
 > Generate keys. Encrypt messages. Simulate secure data transmission. Benchmark both algorithms live — no installation required.
 
@@ -159,7 +159,7 @@ Requires a bash shell (macOS / Linux / WSL) and the backend virtual environment 
 | `NEXT_PUBLIC_API_URL` | URL of the FastAPI backend | `http://localhost:8000` |
 
 For production (Vercel), set `NEXT_PUBLIC_API_URL` to your Render backend URL:  
-`https://ecc-elgamal-api.onrender.com`
+`https://ecc-elgamal.onrender.com`
 
 ---
 

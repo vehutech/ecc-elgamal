@@ -8,13 +8,18 @@ benchmarking, and transmission simulation.
 Deployed at: https://ecc-elgamal-api.railway.app
 """
 
+import asyncio
+import json
 import os
 import base64
+import queue
+import threading
 from typing import Literal
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 import ecc_module
@@ -163,7 +168,7 @@ def ecc_decrypt(req: ECCDecryptRequest):
 
 @app.post("/elgamal/keygen", tags=["ElGamal"])
 def elgamal_keygen():
-    """Generate an ElGamal key pair in RFC 3526 MODP Group 14 (3072-bit)."""
+    """Generate an ElGamal key pair in RFC 3526 MODP Group 15 (3072-bit)."""
     try:
         return elgamal_module.generate_keypair()
     except Exception as e:
@@ -225,6 +230,51 @@ def benchmark(req: BenchmarkRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class BenchmarkCancelled(Exception):
+    """Raised inside the benchmark thread once the client has disconnected."""
+
+
+@app.post("/benchmark/stream", tags=["Benchmark"])
+async def benchmark_stream(req: BenchmarkRequest):
+    """
+    Same comparison as POST /benchmark, streamed as NDJSON (one JSON object
+    per line). Progress events arrive while it runs (stage, iteration, block,
+    memory_start, memory), then a final {"type": "result", "data": ...} or
+    {"type": "error", "detail": ...}. Computation stops if the client disconnects.
+    """
+    events: queue.Queue = queue.Queue()
+    cancelled = threading.Event()
+
+    def emit(event: dict) -> None:
+        if cancelled.is_set():
+            raise BenchmarkCancelled()
+        events.put(event)
+
+    def run() -> None:
+        try:
+            payload = benchmark_module.generate_payload(req.payload_size_bytes)
+            result = benchmark_module.run_full_comparison(payload, iterations=req.iterations, emit=emit)
+            events.put({"type": "result", "data": result})
+        except BenchmarkCancelled:
+            pass
+        except Exception as e:
+            events.put({"type": "error", "detail": f"Benchmark failed on the server: {e}"})
+        finally:
+            events.put(None)  # end of stream
+
+    async def stream():
+        threading.Thread(target=run, daemon=True).start()
+        try:
+            while (event := await asyncio.to_thread(events.get)) is not None:
+                yield json.dumps(event) + "\n"
+        finally:
+            # Runs on normal completion and when the client disconnects;
+            # the benchmark thread stops at its next progress event.
+            cancelled.set()
+
+    return StreamingResponse(stream(), media_type="application/x-ndjson")
 
 
 @app.post("/benchmark/ecc", tags=["Benchmark"])

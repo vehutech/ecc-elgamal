@@ -184,7 +184,7 @@ def transmit_elgamal(plaintext: str) -> dict:
     integrity_ok = recovered_checksum == original_checksum
 
     return {
-        "algorithm": "ElGamal (MODP-3072 / RFC 3526)",
+        "algorithm": "ElGamal (MODP-3072 / RFC 3526 Group 15)",
         "sender": {
             "port": 5000,
             "message": plaintext,

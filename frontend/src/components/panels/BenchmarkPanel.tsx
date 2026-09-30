@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useReducer, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { BarChart2, Play, AlertCircle } from 'lucide-react'
 import {
@@ -10,8 +10,9 @@ import {
   Title, Tooltip, Legend, type ChartOptions,
 } from 'chart.js'
 import { Bar, Line } from 'react-chartjs-2'
-import { api, BenchmarkComparison } from '@/lib/api'
-import { Spinner, ChartSkeleton } from '@/components/ui/Skeleton'
+import { api, BenchmarkComparison, BenchmarkEvent, elgamalIterations } from '@/lib/api'
+import { Spinner } from '@/components/ui/Skeleton'
+import { BenchmarkProgress, ProgressState, initialProgress, progressReducer } from './BenchmarkProgress'
 import { formatMs, formatKB } from '@/lib/utils'
 
 ChartJS.register(
@@ -38,17 +39,33 @@ export function BenchmarkPanel() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<BenchmarkComparison | null>(null)
+  const [progress, dispatchProgress] = useReducer(
+    (state: ProgressState, action: BenchmarkEvent | 'reset') =>
+      action === 'reset' ? initialProgress() : progressReducer(state, action),
+    undefined,
+    initialProgress,
+  )
+  const abortRef = useRef<AbortController | null>(null)
+
+  // Leaving the panel mid-run closes the stream; the server stops computing.
+  useEffect(() => () => abortRef.current?.abort(), [])
+
+  const elgamalDataIterations = elgamalIterations(payloadSize, iterations)
 
   const run = async () => {
     setLoading(true)
     setError(null)
+    dispatchProgress('reset')
+    const controller = new AbortController()
+    abortRef.current = controller
     try {
-      const r = await api.benchmark.compare(payloadSize, iterations)
+      const r = await api.benchmark.stream(payloadSize, iterations, dispatchProgress, controller.signal)
       setResult(r)
     } catch (e: unknown) {
+      if (controller.signal.aborted) return
       setError(e instanceof Error ? e.message : 'Benchmark failed')
     } finally {
-      setLoading(false)
+      if (!controller.signal.aborted) setLoading(false)
     }
   }
 
@@ -149,12 +166,18 @@ export function BenchmarkPanel() {
             className="w-full"
             style={{ accentColor: 'var(--accent)' }}
           />
+          {elgamalDataIterations < iterations && (
+            <p className="text-2xs mt-1" style={{ color: 'var(--fg-subtle)' }}>
+              ElGamal encrypt/decrypt capped at {elgamalDataIterations} iteration{elgamalDataIterations === 1 ? '' : 's'} for
+              this payload: it encrypts every 383-byte block separately, so each run is slow.
+            </p>
+          )}
         </div>
       </div>
 
       <button className="btn-primary justify-center" onClick={run} disabled={loading}>
         {loading ? <Spinner size={14} /> : <Play size={14} />}
-        {loading ? `Running ${iterations} iterations…` : 'Run Benchmark'}
+        {loading ? 'Running benchmark…' : 'Run Benchmark'}
       </button>
 
       {error && (
@@ -167,9 +190,8 @@ export function BenchmarkPanel() {
       <AnimatePresence>
         {loading && (
           <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="space-y-4">
-            <ChartSkeleton />
-            <ChartSkeleton />
+>
+            <BenchmarkProgress progress={progress} />
           </motion.div>
         )}
 
@@ -245,6 +267,8 @@ export function BenchmarkPanel() {
             <div>
               <p className="text-xs font-semibold mb-2" style={{ color: 'var(--fg-muted)' }}>
                 Detailed Statistics — {result.payload_size_label} payload, {result.iterations} iterations
+                {result.elgamal.encrypt.iterations < result.iterations &&
+                  ` (ElGamal encrypt/decrypt: ${result.elgamal.encrypt.iterations})`}
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs" style={{ color: 'var(--fg-muted)', borderCollapse: 'collapse' }}>

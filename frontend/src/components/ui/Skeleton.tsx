@@ -47,15 +47,6 @@ export function StatSkeleton() {
   )
 }
 
-export function ChartSkeleton() {
-  return (
-    <div className="space-y-3 animate-fade-in">
-      <Skeleton className="h-4 w-40" />
-      <Skeleton className="h-48 w-full" />
-    </div>
-  )
-}
-
 export function Spinner({ size = 16 }: { size?: number }) {
   return (
     <svg

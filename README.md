@@ -71,7 +71,7 @@ This project is the implementation artefact for a final year B.Sc. Computer Scie
 | Icons | Lucide React |
 | Backend | FastAPI (Python 3.11) |
 | ECC | `cryptography` library (OpenSSL backend) — NIST P-256 |
-| ElGamal | `pycryptodome` — RFC 3526 MODP Group 14 (3072-bit) |
+| ElGamal | `pycryptodome` — RFC 3526 MODP Group 15 (3072-bit) |
 | Timing | `time.perf_counter()` (nanosecond resolution) |
 | Memory | `tracemalloc` (peak heap profiling) |
 | Frontend Hosting | Vercel |
@@ -189,6 +189,7 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for the complete step-by-step guide from lo
 | `POST` | `/elgamal/decrypt` | Decrypt ElGamal ciphertext |
 | `POST` | `/transmit` | Simulate encrypted port-to-port transmission |
 | `POST` | `/benchmark` | Full comparison benchmark (both algorithms) |
+| `POST` | `/benchmark/stream` | Same comparison, streamed as NDJSON live progress events then the result |
 | `POST` | `/benchmark/ecc` | ECC-only benchmark |
 | `POST` | `/benchmark/elgamal` | ElGamal-only benchmark |
 

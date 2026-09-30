@@ -15,17 +15,46 @@ import os
 from typing import Callable, Any
 
 
+# Receives one progress event (a JSON-serialisable dict) at a time.
+# Events: stage, iteration, block (ElGamal only), memory_start, memory.
+Emit = Callable[[dict], None]
+
+
+def _ignore(_event: dict) -> None:
+    pass
+
+
+# ElGamal encrypts every 383-byte block with its own modular exponentiations,
+# so its cost grows linearly with the payload (~2 min per 1 MB encrypt+decrypt
+# on a laptop). Encrypt/decrypt iterations are capped for large payloads so a
+# run finishes in minutes; keygen does not depend on the payload and is not
+# capped. Mirrored in frontend/src/lib/api.ts (ELGAMAL_ITERATION_CAPS).
+ELGAMAL_ITERATION_CAPS = ((1048576, 1), (102400, 5), (10240, 20))  # (payload bytes >=, max iterations)
+
+
+def elgamal_iterations(payload_len: int, requested: int) -> int:
+    """Iterations actually used for ElGamal encrypt/decrypt at this payload size."""
+    for min_bytes, cap in ELGAMAL_ITERATION_CAPS:
+        if payload_len >= min_bytes:
+            return min(requested, cap)
+    return requested
+
+
 # ── Core profiler ─────────────────────────────────────────────────────────────
 
-def profile_operation(fn: Callable, *args, iterations: int = 100, **kwargs) -> dict:
+def profile_operation(
+    timed_fn: Callable[[], Any],
+    memory_fn: Callable[[], Any],
+    iterations: int,
+    report: Emit = _ignore,
+) -> dict:
     """
-    Profile a callable over multiple iterations.
+    Profile an operation: time `timed_fn` over N iterations, then measure peak
+    heap memory with one separate traced call of `memory_fn`.
 
-    Args:
-        fn: function to profile
-        *args: positional arguments for fn
-        iterations: number of times to call fn (default 100)
-        **kwargs: keyword arguments for fn
+    tracemalloc hooks every allocation and slowed ElGamal encryption by ~60%,
+    so it stays off during the timed iterations. `memory_fn` is the same
+    operation without progress callbacks, so event objects are not counted.
 
     Returns:
         dict with:
@@ -34,27 +63,32 @@ def profile_operation(fn: Callable, *args, iterations: int = 100, **kwargs) -> d
             std_ms      — standard deviation
             min_ms      — minimum time
             max_ms      — maximum time
-            peak_mem_kb — peak heap memory in kilobytes (from final iteration)
-            iterations  — number of iterations run
-            result      — return value from the final call
+            peak_mem_kb — peak heap memory in kilobytes (separate traced run)
+            iterations  — number of timed iterations run
+            result      — return value from the final timed call
     """
+    report({"type": "stage", "iterations": iterations})
     times_ms = []
-    peak_kb = 0.0
     result = None
 
-    for i in range(iterations):
-        tracemalloc.start()
-
+    for i in range(1, iterations + 1):
         t0 = time.perf_counter()
-        result = fn(*args, **kwargs)
+        result = timed_fn()
         t1 = time.perf_counter()
-
-        _, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
 
         elapsed_ms = (t1 - t0) * 1000
         times_ms.append(elapsed_ms)
-        peak_kb = peak / 1024  # bytes → KB (last iteration value)
+        report({"type": "iteration", "i": i, "n": iterations, "ms": round(elapsed_ms, 4)})
+
+    report({"type": "memory_start"})
+    tracemalloc.start()
+    try:
+        memory_fn()
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    peak_kb = peak / 1024  # bytes → KB
+    report({"type": "memory", "peak_kb": round(peak_kb, 3)})
 
     # Remove outliers: values outside [Q1 - 1.5*IQR, Q3 + 1.5*IQR]
     sorted_times = sorted(times_ms)
@@ -81,15 +115,28 @@ def profile_operation(fn: Callable, *args, iterations: int = 100, **kwargs) -> d
     }
 
 
+def _reporter(emit: Emit, algorithm: str, op: str) -> Emit:
+    """Tag profiler events with the algorithm and operation they belong to."""
+    return lambda event: emit({"algorithm": algorithm, "op": op, **event})
+
+
+def _block_reporter(report: Emit) -> Callable[[int, int, int], None]:
+    """Turn ElGamal per-block callbacks into progress events carrying the real value computed."""
+    return lambda block, blocks, value: report(
+        {"type": "block", "block": block, "blocks": blocks, "value": f"{value:x}"[:16]}
+    )
+
+
 # ── Benchmark suites ──────────────────────────────────────────────────────────
 
-def benchmark_ecc(payload_bytes: bytes, iterations: int = 100) -> dict:
+def benchmark_ecc(payload_bytes: bytes, iterations: int = 100, emit: Emit = _ignore) -> dict:
     """
     Full ECC benchmark: keygen, encrypt, decrypt.
 
     Args:
         payload_bytes: plaintext payload to encrypt/decrypt
         iterations: iterations per operation
+        emit: optional progress event sink
 
     Returns:
         dict with keygen, encrypt, decrypt stats and metadata
@@ -97,27 +144,28 @@ def benchmark_ecc(payload_bytes: bytes, iterations: int = 100) -> dict:
     from ecc_module import generate_keypair, encrypt, decrypt
 
     # Key generation
-    keygen_stats = profile_operation(generate_keypair, iterations=iterations)
+    keygen_stats = profile_operation(
+        generate_keypair, generate_keypair, iterations, _reporter(emit, "ecc", "keygen")
+    )
     keypair = keygen_stats["result"]
 
     # Encryption
-    enc_stats = profile_operation(
-        encrypt,
-        payload_bytes,
-        keypair["public_key_pem"],
-        iterations=iterations,
-    )
+    def enc():
+        return encrypt(payload_bytes, keypair["public_key_pem"])
+
+    enc_stats = profile_operation(enc, enc, iterations, _reporter(emit, "ecc", "encrypt"))
     ciphertext = enc_stats["result"]
 
     # Decryption
-    dec_stats = profile_operation(
-        decrypt,
-        ciphertext["ciphertext"],
-        ciphertext["nonce"],
-        ciphertext["ephemeral_public_key"],
-        keypair["private_key_pem"],
-        iterations=iterations,
-    )
+    def dec():
+        return decrypt(
+            ciphertext["ciphertext"],
+            ciphertext["nonce"],
+            ciphertext["ephemeral_public_key"],
+            keypair["private_key_pem"],
+        )
+
+    dec_stats = profile_operation(dec, dec, iterations, _reporter(emit, "ecc", "decrypt"))
 
     return {
         "algorithm": "ECC (ECIES / P-256 / AES-256-GCM)",
@@ -132,35 +180,43 @@ def benchmark_ecc(payload_bytes: bytes, iterations: int = 100) -> dict:
     }
 
 
-def benchmark_elgamal(payload_bytes: bytes, iterations: int = 100) -> dict:
+def benchmark_elgamal(payload_bytes: bytes, iterations: int = 100, emit: Emit = _ignore) -> dict:
     """
     Full ElGamal benchmark: keygen, encrypt, decrypt.
+    Encrypt/decrypt iterations are capped by elgamal_iterations().
     """
     from elgamal_module import generate_keypair, encrypt, decrypt
 
     # Key generation
-    keygen_stats = profile_operation(generate_keypair, iterations=iterations)
+    keygen_stats = profile_operation(
+        generate_keypair, generate_keypair, iterations, _reporter(emit, "elgamal", "keygen")
+    )
     keypair = keygen_stats["result"]
+    data_iterations = elgamal_iterations(len(payload_bytes), iterations)
 
     # Encryption
+    enc_report = _reporter(emit, "elgamal", "encrypt")
+    on_enc_block = _block_reporter(enc_report)
     enc_stats = profile_operation(
-        encrypt,
-        payload_bytes,
-        keypair["public_key"],
-        iterations=iterations,
+        lambda: encrypt(payload_bytes, keypair["public_key"], on_block=on_enc_block),
+        lambda: encrypt(payload_bytes, keypair["public_key"]),
+        data_iterations,
+        enc_report,
     )
     ciphertext = enc_stats["result"]
 
     # Decryption
+    dec_report = _reporter(emit, "elgamal", "decrypt")
+    on_dec_block = _block_reporter(dec_report)
     dec_stats = profile_operation(
-        decrypt,
-        ciphertext,
-        keypair["private_key"],
-        iterations=iterations,
+        lambda: decrypt(ciphertext, keypair["private_key"], on_block=on_dec_block),
+        lambda: decrypt(ciphertext, keypair["private_key"]),
+        data_iterations,
+        dec_report,
     )
 
     return {
-        "algorithm": "ElGamal (MODP-3072 / RFC 3526 Group 14)",
+        "algorithm": "ElGamal (MODP-3072 / RFC 3526 Group 15)",
         "payload_size_bytes": len(payload_bytes),
         "payload_size_label": _size_label(len(payload_bytes)),
         "keygen": _strip_result(keygen_stats),
@@ -172,15 +228,15 @@ def benchmark_elgamal(payload_bytes: bytes, iterations: int = 100) -> dict:
     }
 
 
-def run_full_comparison(payload_bytes: bytes, iterations: int = 100) -> dict:
+def run_full_comparison(payload_bytes: bytes, iterations: int = 100, emit: Emit = _ignore) -> dict:
     """
     Run benchmarks for both algorithms on the same payload.
 
     Returns:
         Combined comparison dict with ecc, elgamal results and derived ratios
     """
-    ecc = benchmark_ecc(payload_bytes, iterations)
-    elgamal = benchmark_elgamal(payload_bytes, iterations)
+    ecc = benchmark_ecc(payload_bytes, iterations, emit)
+    elgamal = benchmark_elgamal(payload_bytes, iterations, emit)
 
     return {
         "ecc": ecc,

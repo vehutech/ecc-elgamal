@@ -97,6 +97,82 @@ export interface BenchmarkComparison {
   iterations: number
 }
 
+export type BenchmarkAlgorithm = 'ecc' | 'elgamal'
+export type BenchmarkOp = 'keygen' | 'encrypt' | 'decrypt'
+
+interface BenchmarkEventBase {
+  algorithm: BenchmarkAlgorithm
+  op: BenchmarkOp
+}
+
+/** Progress events streamed by POST /benchmark/stream (see backend/main.py). */
+export type BenchmarkEvent = BenchmarkEventBase & (
+  | { type: 'stage'; iterations: number }
+  | { type: 'iteration'; i: number; n: number; ms: number }
+  /** ElGamal only: one plaintext block done; value = first 16 hex digits of c1 (encrypt) or m (decrypt). */
+  | { type: 'block'; block: number; blocks: number; value: string }
+  | { type: 'memory_start' }
+  | { type: 'memory'; peak_kb: number }
+)
+
+type BenchmarkStreamLine =
+  | BenchmarkEvent
+  | { type: 'result'; data: BenchmarkComparison }
+  | { type: 'error'; detail: string }
+
+/**
+ * ElGamal encrypt/decrypt iteration caps by payload size, mirroring
+ * ELGAMAL_ITERATION_CAPS in backend/benchmark_module.py.
+ */
+const ELGAMAL_ITERATION_CAPS: ReadonlyArray<readonly [number, number]> = [
+  [1048576, 1],
+  [102400, 5],
+  [10240, 20],
+]
+
+export function elgamalIterations(payloadBytes: number, requested: number): number {
+  for (const [minBytes, cap] of ELGAMAL_ITERATION_CAPS) {
+    if (payloadBytes >= minBytes) return Math.min(requested, cap)
+  }
+  return requested
+}
+
+async function streamBenchmark(
+  payload_size_bytes: number,
+  iterations: number,
+  onEvent: (event: BenchmarkEvent) => void,
+  signal?: AbortSignal,
+): Promise<BenchmarkComparison> {
+  const res = await fetch(`${BASE}/benchmark/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ payload_size_bytes, iterations }),
+    signal,
+  })
+  if (!res.ok || !res.body) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail ?? 'Request failed')
+  }
+
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
+  let buffer = ''
+  for (;;) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += value
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+    for (const line of lines) {
+      if (!line) continue
+      const event = JSON.parse(line) as BenchmarkStreamLine
+      if (event.type === 'result') return event.data
+      if (event.type === 'error') throw new Error(event.detail)
+      onEvent(event)
+    }
+  }
+  throw new Error('The benchmark stopped before it finished. Check that the backend is still running, then run it again.')
+}
+
 export interface TransmissionResult {
   algorithm: string
   sender: {
@@ -159,6 +235,7 @@ export const api = {
     post<TransmissionResult>('/transmit', { message, algorithm }),
 
   benchmark: {
+    stream: streamBenchmark,
     compare: (payload_size_bytes: number, iterations: number) =>
       post<BenchmarkComparison>('/benchmark', { payload_size_bytes, iterations }),
     ecc: (payload_size_bytes: number, iterations: number) =>

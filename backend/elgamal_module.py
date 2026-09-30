@@ -3,7 +3,7 @@ elgamal_module.py
 CipherDuel — ElGamal Cryptosystem Module
 
 Implements classical ElGamal encryption over a 3072-bit safe prime group
-(RFC 3526 Group 14 / MODP-3072).
+(RFC 3526 Group 15 / MODP-3072).
 
 Security level: 128-bit classical security (NIST SP 800-57, 2023)
 
@@ -12,14 +12,14 @@ This eliminates small-subgroup confinement attacks by ensuring the only
 subgroups of Z*_p have orders 1, 2, q, 2q.
 """
 
-import os
 import base64
-import json
-from Crypto.Util.number import getPrime, inverse, bytes_to_long, long_to_bytes
+from typing import Callable, Optional
+from Crypto.Math.Numbers import Integer
+from Crypto.Util.number import bytes_to_long, long_to_bytes
 from Crypto.Random import random as crypto_random
 
 
-# ── RFC 3526 Group 14 — 3072-bit MODP safe prime ─────────────────────────────
+# ── RFC 3526 Group 15 — 3072-bit MODP safe prime ─────────────────────────────
 # p is a 3072-bit safe prime; g = 2 is a generator of the prime-order subgroup.
 # Using pre-computed parameters avoids expensive prime generation and ensures
 # all users operate on the same verified group.
@@ -47,6 +47,23 @@ P = int(_P_HEX.replace(" ", ""), 16)
 G = 2  # generator of the prime-order subgroup of order q = (P-1)/2
 Q = (P - 1) // 2  # prime order of the subgroup
 
+# Called after each block is processed: (blocks_done, blocks_total, value).
+# value is c1 when encrypting and the recovered message integer m when decrypting.
+BlockCallback = Callable[[int, int, int], None]
+
+
+def _modexp(base: int, exponent: int) -> int:
+    """
+    base^exponent mod P.
+
+    Uses pycryptodome's Integer, which runs on GMP when libgmp is available and
+    on pycryptodome's own C implementation otherwise. Python's built-in pow()
+    on 3072-bit operands is roughly 10x slower, which would make the benchmark
+    measure the Python interpreter rather than ElGamal (ECC already runs in
+    OpenSSL's C code).
+    """
+    return int(Integer(base).inplace_pow(exponent, P))
+
 
 # ── Key Generation ────────────────────────────────────────────────────────────
 
@@ -65,7 +82,7 @@ def generate_keypair() -> dict:
     x = crypto_random.randint(2, Q - 1)
 
     # Public key: h = g^x mod p
-    h = pow(G, x, P)
+    h = _modexp(G, x)
 
     return {
         "private_key": hex(x),
@@ -74,7 +91,7 @@ def generate_keypair() -> dict:
         "g": hex(G),
         "key_size_bits": 3072,
         "security_level_bits": 128,
-        "group": "RFC 3526 MODP Group 14 (3072-bit safe prime)",
+        "group": "RFC 3526 MODP Group 15 (3072-bit safe prime)",
     }
 
 
@@ -91,12 +108,12 @@ def _encrypt_block(m_int: int, h: int) -> tuple:
     Returns (c1, c2) as integers.
     """
     y = crypto_random.randint(2, Q - 1)
-    c1 = pow(G, y, P)
-    c2 = (m_int * pow(h, y, P)) % P
+    c1 = _modexp(G, y)
+    c2 = (m_int * _modexp(h, y)) % P
     return (c1, c2)
 
 
-def encrypt(plaintext: bytes, public_key_hex: str) -> dict:
+def encrypt(plaintext: bytes, public_key_hex: str, on_block: Optional[BlockCallback] = None) -> dict:
     """
     Encrypt plaintext bytes using ElGamal.
 
@@ -107,6 +124,7 @@ def encrypt(plaintext: bytes, public_key_hex: str) -> dict:
     Args:
         plaintext: raw bytes to encrypt
         public_key_hex: hex string of the recipient's public key h
+        on_block: optional progress callback, see BlockCallback
 
     Returns:
         dict with list of (c1, c2) pairs (base64-encoded), block count,
@@ -118,7 +136,7 @@ def encrypt(plaintext: bytes, public_key_hex: str) -> dict:
     blocks = [plaintext[i:i + block_size] for i in range(0, len(plaintext), block_size)]
     encrypted_blocks = []
 
-    for block in blocks:
+    for i, block in enumerate(blocks, 1):
         # Prepend 0x01 to preserve leading zero bytes
         m_int = bytes_to_long(b"\x01" + block)
         c1, c2 = _encrypt_block(m_int, h)
@@ -126,6 +144,8 @@ def encrypt(plaintext: bytes, public_key_hex: str) -> dict:
             "c1": base64.b64encode(long_to_bytes(c1)).decode(),
             "c2": base64.b64encode(long_to_bytes(c2)).decode(),
         })
+        if on_block:
+            on_block(i, len(blocks), c1)
 
     return {
         "blocks": encrypted_blocks,
@@ -137,28 +157,28 @@ def encrypt(plaintext: bytes, public_key_hex: str) -> dict:
 
 # ── Decryption ────────────────────────────────────────────────────────────────
 
-def _decrypt_block(c1: int, c2: int, x: int) -> bytes:
+def _decrypt_block(c1: int, c2: int, x: int) -> int:
     """
     Decrypt a single ElGamal block.
 
     Shared secret s = c1^x mod p
     m = c2 * s^{-1} mod p
+
+    Returns m as an integer (still carrying the 0x01 prefix byte).
     """
-    s = pow(c1, x, P)
-    s_inv = inverse(s, P)
-    m_int = (c2 * s_inv) % P
-    m_bytes = long_to_bytes(m_int)
-    # Strip the 0x01 prefix added during encryption
-    return m_bytes[1:]
+    s = _modexp(c1, x)
+    s_inv = int(Integer(s).inverse(P))
+    return (c2 * s_inv) % P
 
 
-def decrypt(encrypted_data: dict, private_key_hex: str) -> bytes:
+def decrypt(encrypted_data: dict, private_key_hex: str, on_block: Optional[BlockCallback] = None) -> bytes:
     """
     Decrypt an ElGamal-encrypted payload.
 
     Args:
         encrypted_data: dict as returned by encrypt()
         private_key_hex: hex string of the recipient's private key x
+        on_block: optional progress callback, see BlockCallback
 
     Returns:
         Decrypted plaintext bytes
@@ -166,9 +186,14 @@ def decrypt(encrypted_data: dict, private_key_hex: str) -> bytes:
     x = int(private_key_hex, 16)
     plaintext_parts = []
 
-    for block in encrypted_data["blocks"]:
+    blocks = encrypted_data["blocks"]
+    for i, block in enumerate(blocks, 1):
         c1 = bytes_to_long(base64.b64decode(block["c1"]))
         c2 = bytes_to_long(base64.b64decode(block["c2"]))
-        plaintext_parts.append(_decrypt_block(c1, c2, x))
+        m_int = _decrypt_block(c1, c2, x)
+        # Strip the 0x01 prefix added during encryption
+        plaintext_parts.append(long_to_bytes(m_int)[1:])
+        if on_block:
+            on_block(i, len(blocks), m_int)
 
     return b"".join(plaintext_parts)

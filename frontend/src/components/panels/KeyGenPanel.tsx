@@ -73,7 +73,7 @@ export function KeyGenPanel() {
         ) : (
           <>
             <span className="badge badge-elgamal">RFC 3526</span>
-            <span>3072-bit key &middot; 128-bit security &middot; MODP Group 14</span>
+            <span>3072-bit key &middot; 128-bit security &middot; MODP Group 15</span>
           </>
         )}
       </div>
@@ -151,7 +151,7 @@ export function KeyGenPanel() {
                   sensitive
                 />
                 <div className="grid grid-cols-3 gap-2 text-2xs" style={{ color: 'var(--fg-subtle)' }}>
-                  <Info label="Group" value="RFC 3526 G14" />
+                  <Info label="Group" value="RFC 3526 G15" />
                   <Info label="Key Size" value={`${elgamalKeys.key_size_bits} bits`} />
                   <Info label="Security" value={`${elgamalKeys.security_level_bits}-bit`} />
                 </div>

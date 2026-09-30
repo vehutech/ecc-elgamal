@@ -14,7 +14,7 @@ subgroups of Z*_p have orders 1, 2, q, 2q.
 
 import base64
 from typing import Callable, Optional
-from Crypto.Math.Numbers import Integer
+import gmpy2
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 from Crypto.Random import random as crypto_random
 
@@ -56,13 +56,12 @@ def _modexp(base: int, exponent: int) -> int:
     """
     base^exponent mod P.
 
-    Uses pycryptodome's Integer, which runs on GMP when libgmp is available and
-    on pycryptodome's own C implementation otherwise. Python's built-in pow()
-    on 3072-bit operands is roughly 10x slower, which would make the benchmark
-    measure the Python interpreter rather than ElGamal (ECC already runs in
-    OpenSSL's C code).
+    Uses GMP through gmpy2, whose wheels bundle libgmp so every host gets the
+    same native code. Python's built-in pow() on 3072-bit operands is roughly
+    10x slower, which would make the benchmark measure the Python interpreter
+    rather than ElGamal (ECC already runs in OpenSSL's C code).
     """
-    return int(Integer(base).inplace_pow(exponent, P))
+    return int(gmpy2.powmod(base, exponent, P))
 
 
 # ── Key Generation ────────────────────────────────────────────────────────────
@@ -167,7 +166,7 @@ def _decrypt_block(c1: int, c2: int, x: int) -> int:
     Returns m as an integer (still carrying the 0x01 prefix byte).
     """
     s = _modexp(c1, x)
-    s_inv = int(Integer(s).inverse(P))
+    s_inv = int(gmpy2.invert(s, P))
     return (c2 * s_inv) % P
 
 

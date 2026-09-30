@@ -137,6 +137,17 @@ The app will be running at `http://localhost:3000`.
 Go to [http://localhost:3000](http://localhost:3000).  
 Both backend and frontend must be running simultaneously.
 
+### One command: run both
+
+After steps 2 and 3 have been done once, start both servers from the repo root with:
+
+```bash
+./dev.sh
+```
+
+This runs the FastAPI backend on `http://localhost:8000` and the Next.js frontend on `http://localhost:3000` in the same terminal. Press `Ctrl+C` to stop both.  
+Requires a bash shell (macOS / Linux / WSL) and the backend virtual environment at `backend/venv`.
+
 ---
 
 ## Environment Variables

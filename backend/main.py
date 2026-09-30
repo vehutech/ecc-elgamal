@@ -121,7 +121,8 @@ def root():
 
 @app.get("/health", tags=["Health"])
 def health():
-    return {"status": "ok"}
+    # RENDER_GIT_COMMIT is set by Render at deploy time; shows which commit is live.
+    return {"status": "ok", "commit": os.environ.get("RENDER_GIT_COMMIT", "unknown")}
 
 
 # ── ECC Endpoints ─────────────────────────────────────────────────────────────

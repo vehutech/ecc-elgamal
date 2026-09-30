@@ -204,7 +204,7 @@ export interface TransmissionResult {
 // ── API calls ─────────────────────────────────────────────────────────────────
 
 export const api = {
-  health: () => get<{ status: string }>('/health'),
+  health: () => get<{ status: string; commit: string }>('/health'),
 
   ecc: {
     keygen: () => post<ECCKeyPair>('/ecc/keygen', {}),
